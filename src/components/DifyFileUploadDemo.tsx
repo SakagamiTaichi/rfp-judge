@@ -3,7 +3,6 @@ import {
   Container,
   Paper,
   Typography,
-  TextField,
   Alert,
   Box,
   Table,
@@ -13,7 +12,6 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Grid,
   IconButton,
   Tooltip,
   Button,
@@ -26,7 +24,6 @@ import {
   Image as ImageIcon,
   PictureAsPdf as PdfIcon,
   Folder as FolderIcon,
-  Info as InfoIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   FileCopy as FileCopyIcon,
@@ -47,11 +44,19 @@ interface UploadResult {
   file?: File;
 }
 
+interface DifyWorkflowResponse {
+  data?: {
+    outputs?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 interface WorkflowResult {
   id: string;
   file_id: string;
   status: "running" | "completed" | "failed";
-  result?: unknown;
+  result?: DifyWorkflowResponse;
   created_at: number;
   error?: string;
 }
@@ -430,7 +435,7 @@ export const DifyFileUploadDemo: React.FC = () => {
                           const workflowData = result.result && 
                             typeof result.result === "object" &&
                             "data" in result.result 
-                              ? (result.result as any).data
+                              ? result.result.data
                               : result.result;
                           
                           if (workflowData && 
@@ -438,7 +443,7 @@ export const DifyFileUploadDemo: React.FC = () => {
                               "outputs" in workflowData) {
                             return (
                               <DifyResultDisplay
-                                result={workflowData as any}
+                                result={workflowData as unknown as React.ComponentProps<typeof DifyResultDisplay>['result']}
                                 fileName={uploadFile?.name}
                               />
                             );
