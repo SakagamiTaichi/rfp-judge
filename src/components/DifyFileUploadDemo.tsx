@@ -57,9 +57,9 @@ interface WorkflowResult {
 }
 
 export const DifyFileUploadDemo: React.FC = () => {
-  const [apiKey, setApiKey] = useState("");
-  const [workflowApiKey, setWorkflowApiKey] = useState("");
-  const [userId, setUserId] = useState("user-123");
+  const apiKey = import.meta.env.VITE_DIFY_UPLOAD_API_KEY || "";
+  const workflowApiKey = import.meta.env.VITE_DIFY_WORKFLOW_API_KEY || "";
+  const userId = import.meta.env.VITE_DIFY_USER_ID || "user-123";
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [workflowResults, setWorkflowResults] = useState<WorkflowResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export const DifyFileUploadDemo: React.FC = () => {
 
   const executeWorkflow = async (fileId: string) => {
     if (!workflowApiKey.trim()) {
-      setError("ワークフロー用のAPI Keyを入力してください");
+      setError("ワークフロー用のAPI Keyが環境変数に設定されていません");
       return;
     }
 
@@ -206,51 +206,6 @@ export const DifyFileUploadDemo: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper elevation={3} sx={{ p: 3, mb: 3, maxWidth: 800, mx: "auto" }}>
-        <Typography
-          variant="h5"
-          gutterBottom
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-        >
-          <InfoIcon color="primary" />
-          設定
-        </Typography>
-
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField
-            label="Dify File Upload API Key"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="your-dify-file-upload-api-key"
-            fullWidth
-            variant="outlined"
-            helperText="Difyのファイルアップロード用API Keyを入力してください"
-          />
-
-          <TextField
-            label="Dify Workflow API Key"
-            type="password"
-            value={workflowApiKey}
-            onChange={(e) => setWorkflowApiKey(e.target.value)}
-            placeholder="your-dify-workflow-api-key"
-            fullWidth
-            variant="outlined"
-            helperText="Difyのワークフロー実行用API Keyを入力してください"
-          />
-
-          <TextField
-            label="User ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder="unique-user-id"
-            fullWidth
-            variant="outlined"
-            helperText="一意のユーザーIDを設定してください"
-          />
-        </Box>
-      </Paper>
-
       {error && (
         <Alert
           severity="error"
@@ -470,33 +425,46 @@ export const DifyFileUploadDemo: React.FC = () => {
                     result.result !== undefined && (
                       <Box>
                         {/* DifyResultDisplayコンポーネントを使用 */}
-                        {result.result &&
-                        typeof result.result === "object" &&
-                        "outputs" in result.result ? (
-                          <DifyResultDisplay
-                            result={result.result as any}
-                            fileName={uploadFile?.name}
-                          />
-                        ) : (
-                          <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                              実行結果:
-                            </Typography>
-                            <Paper sx={{ p: 2, backgroundColor: "#f5f5f5" }}>
-                              <pre
-                                style={{
-                                  margin: 0,
-                                  whiteSpace: "pre-wrap",
-                                  fontFamily: "monospace",
-                                }}
-                              >
-                                {typeof result.result === "string"
-                                  ? result.result
-                                  : JSON.stringify(result.result, null, 2)}
-                              </pre>
-                            </Paper>
-                          </Box>
-                        )}
+                        {(() => {
+                          // Difyレスポンスの構造を確認: dataオブジェクト内にワークフロー結果がある場合
+                          const workflowData = result.result && 
+                            typeof result.result === "object" &&
+                            "data" in result.result 
+                              ? (result.result as any).data
+                              : result.result;
+                          
+                          if (workflowData && 
+                              typeof workflowData === "object" && 
+                              "outputs" in workflowData) {
+                            return (
+                              <DifyResultDisplay
+                                result={workflowData as any}
+                                fileName={uploadFile?.name}
+                              />
+                            );
+                          }
+                          
+                          return (
+                            <Box>
+                              <Typography variant="subtitle2" gutterBottom>
+                                実行結果:
+                              </Typography>
+                              <Paper sx={{ p: 2, backgroundColor: "#f5f5f5" }}>
+                                <pre
+                                  style={{
+                                    margin: 0,
+                                    whiteSpace: "pre-wrap",
+                                    fontFamily: "monospace",
+                                  }}
+                                >
+                                  {typeof result.result === "string"
+                                    ? result.result
+                                    : JSON.stringify(result.result, null, 2)}
+                                </pre>
+                              </Paper>
+                            </Box>
+                          );
+                        })()}
                       </Box>
                     )}
                   {result.status === "failed" && result.error && (
